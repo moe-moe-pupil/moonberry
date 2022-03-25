@@ -185,7 +185,7 @@ const DynamicMenu: React.FC = (props) => {
         menuHeaderRender={(props) => {
           return (
             <>
-              <h1>{'<' + RootStore.groups[RootStore.currentGroup]?RootStore.groups[RootStore.currentGroup].name:'未选择任何团' + '>'}</h1>
+              <h1>{RootStore.groups.length > 0 ? '<' + RootStore.groups[RootStore.currentGroup].name + '>' : '未选择任何团'}</h1>
             </>
           );
         }}
@@ -244,7 +244,7 @@ const DynamicMenu: React.FC = (props) => {
               overflowX: 'hidden',
             }}
           >
-            {props.children}
+            {RootStore.groups.length > 0?props.children:<h1 style={{color:'#fff', fontSize:40}}>尚未有任何团,请先在团管理中新建团</h1>}
           </div>
         </PageContainer>
 

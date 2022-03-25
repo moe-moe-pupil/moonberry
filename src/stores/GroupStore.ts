@@ -153,7 +153,7 @@ export enum basicConfigEnum {
     dexRangeDMGBenifit =  '灵巧远程伤害增益',
     wisHealBenifit = '智慧治疗增益',
     intHealBenifit = '智力治疗增益',
-    agiDMG = '敏捷伤害增益',
+    agiDMGBenifit = '敏捷伤害增益',
     strSpeed = '力量移速',
     agiSpeed = '敏捷移速',
     dexSpeed = '灵巧移速'
