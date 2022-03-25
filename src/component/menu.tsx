@@ -185,7 +185,7 @@ const DynamicMenu: React.FC = (props) => {
         menuHeaderRender={(props) => {
           return (
             <>
-              <h1>{'<' + RootStore.groups[RootStore.currentGroup].name + '>'}</h1>
+              <h1>{'<' + RootStore.groups[RootStore.currentGroup]?RootStore.groups[RootStore.currentGroup].name:'未选择任何团' + '>'}</h1>
             </>
           );
         }}
