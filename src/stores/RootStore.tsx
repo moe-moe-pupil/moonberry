@@ -42,7 +42,7 @@ export const MiraiWarn = `'月莓' 模组引用到了开源项目'mirai-api-http
 以下是开源项目的github链接：
   'mirai':https://github.com/mamoe/mirai
   'mirai-api-http':https://github.com/project-mirai/mirai-api-http
-  '月莓':整理中...
+  '月莓':https://github.com/moe-moe-pupil/moonberry
 感谢所有mirai开发者的无私付出以及所有其他库的贡献者，没有他们就不会有这个模组。\n`
 
 export enum ModalType {
