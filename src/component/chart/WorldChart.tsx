@@ -66,11 +66,10 @@ export const geneGroup = (graph: Graph, combat: boolean) => {
     parent.setProp('type', '_group')
     parent.setProp('combat', combat)
     graph.getSelectedCells().map((cell) => {
-      if (cell.getProp('type') == rectType.pc) {
+      if (cell.getProp('type') == rectType.pc || cell.getProp('type') == rectType.npc) {
         parent.addChild(cell)
-        cell.getProp('QQNumber')
+        //cell.getProp('QQNumber')
       }
-
     })
   }
 }
@@ -79,7 +78,7 @@ export const WorldChart = ({ id }: ISkillEdit) => {
   const { RootStore }: Record<string, Root> = useStores();
   const RootDelegate = (shape: ReactShape<ReactShape.Properties> | Node<Node.Properties>, chatAreaId?: string) => {
     shape.setProp('pc', function (QQNumber: number) { return RootStore.getPcByQQNumber(QQNumber) })
-    if(chatAreaId) {
+    if (chatAreaId) {
       shape.setProp('chatArea', function (chatAreaId: string) { return RootStore.getChatAreaById(chatAreaId) })
     }
     //shape.setProp('root', RootStore)
@@ -89,6 +88,7 @@ export const WorldChart = ({ id }: ISkillEdit) => {
   const UpdateBluePrint = (graph: Graph) => {
     const nodes = graph.getNodes()
     const newChatAreas: IArea[] = []
+    const newNpcNumbers: number[] = []
     var ChatAreaIdx = 0;
     nodes.map((node) => {
       if (node.getProp('type') == rectType.pc) {
@@ -96,10 +96,16 @@ export const WorldChart = ({ id }: ISkillEdit) => {
         const nowView = graph.findViewByCell(node) as NodeView
         nowView.update()
       }
+      if (node.getProp('type') == rectType.npc) {
+        newNpcNumbers.push(node.getProp('QQNumber'))
+      }
       if (node.getProp('type') == '_group' && node.children && node.children.length > 1) {
         const members: number[] = []
         node.children.map((child) => {
-          members.push(child.getProp('QQNumber'))
+          const nowChild = child.getProp('QQNumber')
+          if (nowChild >= 0 || true) {
+            members.push(nowChild)
+          }
         })
         const nowPos = node.getPosition()
         const nowSize = node.getSize()
@@ -127,6 +133,7 @@ export const WorldChart = ({ id }: ISkillEdit) => {
       }
     })
     RootStore.setChatArea(id, newChatAreas)
+    RootStore.setNpcNumber(id, newNpcNumbers)
     RootStore.worldSave(id, graph.toJSON({ diff: true }))
     RootStore.postProcessAllSendToCheck()
   }
@@ -156,6 +163,7 @@ export const WorldChart = ({ id }: ISkillEdit) => {
       },
       ...worldMapConfig
     })
+
     const update = () => {
       const allEdges = graph.getEdges();
       allEdges.map((edge) => {
@@ -164,6 +172,7 @@ export const WorldChart = ({ id }: ISkillEdit) => {
       })
       UpdateBluePrint(graph)
     }
+
     graph.bindKey('ctrl+c', () => {
       const cells = graph.getSelectedCells().filter((cell) => { return cell.getProp('type') != 'pc' })
       if (cells.length) {
@@ -171,16 +180,21 @@ export const WorldChart = ({ id }: ISkillEdit) => {
       }
       return false
     })
+
     graph.bindKey('del', () => {
       const cells = graph.getSelectedCells()
       cells.map((cell) => {
         if (cell.children) {
           cell.children.map((child) => {
             cell.unembed(child)
-            //console.log('我试着移除了' + child)
+            //console.log('移除了' + child)
           })
         }
+        if (cell.getProp('QQNumber') < 0) {
+          RootStore.delPcById(cell.getProp('QQNumber'))
+        }
       })
+
       graph.removeCells(cells)
       UpdateBluePrint(graph)
       return false
@@ -339,6 +353,30 @@ export const WorldChart = ({ id }: ISkillEdit) => {
       search(cell, keyword) {
         return cell.getProp('name').indexOf(keyword) !== -1
       },
+      getDropNode(node) {
+        const qqNumber = node.getProp('QQNumber')
+        const nowPc = RootStore.getPcByQQNumber(qqNumber)
+        const newNode = node.clone()
+        switch (node.getProp('type')) {
+          case rectType.npc:
+            if (nowPc) {
+              const newPc = Object.assign({}, nowPc)
+              const gene = RootStore.geneInsertNPCId(qqNumber)
+              newPc.Id = gene.IdV
+              const nowIdx = gene.c
+              newPc.nickname = newPc.nickname + nowIdx.toString()
+              RootStore.setPcByQQNumber(newPc.Id, newPc)
+              newNode.setProp('QQNumber', newPc.Id)
+              console.log('成功更新', newPc, RootStore.groups[RootStore.currentGroup].pc)
+            }
+            return newNode
+            break;
+          default:
+            return node.clone()
+            break;
+        }
+
+      },
       placeholder: '请输入组件名称以查询',
       notFoundText: '未找到相关内容',
       validateNode: (node) => {
@@ -367,6 +405,11 @@ export const WorldChart = ({ id }: ISkillEdit) => {
         {
           name: 'pc',
           title: '玩家目标',
+          graphHeight: 1200,
+        },
+        {
+          name: 'npc',
+          title: '非玩家目标',
           graphHeight: 1200,
         },
       ],
@@ -421,10 +464,10 @@ export const WorldChart = ({ id }: ISkillEdit) => {
 
         if (item.group == group) {
           switch (item.group) {
-            case 'pc':
+            case rectType.pc:
               RootStore.getWorldById(id)!.world.PcNumbers.map((number) => {
-                const nowPc = RootStore.getPcByQQNumber(number)!
-                if (true) {
+                const nowPc = RootStore.getPcByQQNumber(number)
+                if (nowPc) {
                   var newPort: PortManager.PortMetadata = {
                     id: ":onlyLabel",
                     group: "onlyLabel",
@@ -435,7 +478,7 @@ export const WorldChart = ({ id }: ISkillEdit) => {
                     },
                     attrs: {
                       text: {
-                        text: nowPc.name
+                        text: nowPc.name == "" ? nowPc.nickname : nowPc.name
                       }
                     }
                   }
@@ -466,6 +509,51 @@ export const WorldChart = ({ id }: ISkillEdit) => {
                   RootDelegate(newShape)
                   nodes.push(newShape)
                 }
+              })
+              break;
+            case rectType.npc:
+              RootStore.unitPool.map((pool) => {
+                const nowPc = pool.Pc
+                var newPort: PortManager.PortMetadata = {
+                  id: ":onlyLabel",
+                  group: "onlyLabel",
+                  // 通过 args 指定绝对位置
+                  args: {
+                    x: 0,
+                    y: 48,
+                  },
+                  attrs: {
+                    text: {
+                      text: nowPc.name == "" ? nowPc.nickname : nowPc.name
+                    }
+                  }
+                }
+                portItems[0] = newPort
+                const newShape = new ReactShape({
+                  width: 140,
+                  height: 100 + item.row.length * 40,
+                  view: UNIQ_GRAPH_ID, // 需要指定 view 属性为定义的标识
+                  shape: 'react-shape',
+                  portMarkup: [
+                    {
+                      tagName: 'rect',
+                      selector: 'body',
+                    },
+                    {
+                      tagName: 'text',
+                      selector: 'label',
+                    },],
+                  ports: {
+                    items: portItems,
+                    groups: portGroupsConfig
+                  },
+                  component: `NPC`, // 自定义的 React 节点
+                })
+                newShape.setProp('name', nowPc.nickname)
+                newShape.setProp('QQNumber', nowPc.Id)
+                newShape.setProp('type', item.type)
+                RootDelegate(newShape)
+                nodes.push(newShape)
               })
               break;
             default:
@@ -510,19 +598,6 @@ export const WorldChart = ({ id }: ISkillEdit) => {
       UpdateBluePrint(graph)
     }
 
-    // 在添加节点前，先将生成的 Graph 实例传入 setGrah
-    /*
-    // 生成一组可被添加的节点
-    const nodes = data.map(dataItem => {
-      return new ReactShape({
-        view: UNIQ_GRAPH_ID, // 需要指定 view 属性为定义的标识
-        component: <CustomReactNode />, // 自定义的 React 节点
-        // .. 其它配置项
-      })
-    })
-    // 批量添加一组节点以提升挂载性能
-    graph.addCell(nodes)
-    */
   }, [setGraph])
 
   useEffect(() => {

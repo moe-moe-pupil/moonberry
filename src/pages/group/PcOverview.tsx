@@ -16,30 +16,33 @@ import { getEnumKeysOrValue } from '@/utils/findObjectAttr';
 import Pc from '@/stores/PcStore';
 import { exchangeType, statusType, Zh_statusType } from '@/api/handle/exchangeHandle';
 import { TargetEnum } from '@/stores/BuffStore';
-const postPcsData = (Pcs:Pc[]) => {
-  const newPcs:Pc[] = []
-  Pcs.map((pc)=>{
+const postPcsData = (Pcs: Pc[]) => {
+  const newPcs: Pc[] = []
+  Pcs.map((pc) => {
     const newPc = Object.assign(TargetEnum)
   })
-  return 
+  return
 }
 const PcOverview = () => {
   const actionRef = useRef<ActionType>();
   const { RootStore }: Record<string, Root> = useStores();
   const returnCols: ProColumns<Pc>[] = []
   for (var i = exchangeType.str; i <= exchangeType.cha; i++) {
+    const nowType = statusType[i]
     const returnCol: ProColumns<Pc> =
     {
       title: Zh_statusType[i],
-      dataIndex: statusType[i],
+      dataIndex: nowType ,
       search: false,
+      sorter:(a:Pc, b:Pc)=>{
+        return a.totalStatus[nowType] - b.totalStatus[nowType]
+      },
       render: (_, record, idx, undefined, {
         dataIndex, sorter, showSorterTooltip
       }) => {
-        sorter = true
         showSorterTooltip = true
         return (
-          record.status[dataIndex as string] + record.extraStatus[dataIndex as string]
+          record.totalStatus[dataIndex as string]
         )
       },
     }

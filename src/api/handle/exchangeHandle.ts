@@ -68,8 +68,8 @@ export function exchangeHandle(RootStore: Root, newChatMsg: miraiContent) {
   const qqNumber = newChatMsg.sender?.id!;
   if (RootStore.findPcByQQNumber(qqNumber) == -1) {
     const newPc: Pc = new Pc()
-    newPc.Id = newChatMsg.sender?.id!,
-      newPc.name = newChatMsg.sender?.nickname!
+    newPc.Id = newChatMsg.sender?.id!
+    newPc.name = newChatMsg.sender?.nickname!
     newPc.statusPoint = RootStore.groups[RootStore.currentGroup].initStatusPoint
     newPc.exchangePoint = RootStore.groups[RootStore.currentGroup].initExchangePoint
     RootStore.setPcByQQNumber(qqNumber, newPc);

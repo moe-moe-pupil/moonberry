@@ -40,9 +40,10 @@ const filterByMenuDate = (data: MenuDataItem[], keyWord: string): MenuDataItem[]
 const ProDiv = styled.div`
   .ant-modal-wrap{
     pointer-events: none;
+    z-Index: 800!important;
   }
   .ant-modal-wrap:focus-within{
-    z-Index: 2001;
+    z-Index: 900!important;
   }
   .ant-modal-body {
     overflow: auto;
@@ -73,6 +74,9 @@ const ProDiv = styled.div`
   }
   .ant-input-group.ant-input-group-compact {
     display: flex;
+  }
+  .ant-popover {
+    z-index:1030 !important;
   }
 `;
 

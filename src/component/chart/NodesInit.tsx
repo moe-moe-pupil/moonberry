@@ -57,6 +57,7 @@ export const Nodes: INode[] = [
 
 export const WorldNodes: INode[] = [
   { name: '玩家', type: rectType.pc, title: "玩家", row: [{ inPorts: ':onlyLabel', outPorts: '' }], group: 'pc' },
+  { name: 'NPC', type: rectType.npc, title: 'NPC', row: [{ inPorts: ':onlyLabel', outPorts: '' }], group: 'npc' },
   { name: '群组', type: rectType.token, title: "虚拟讨论组", row: [{ inPorts: ':onlyLabel', outPorts: '' }], group: 'combat' }
 ]
 
@@ -75,6 +76,9 @@ export async function InitNodes() {
       case rectType.token:
         Graph.registerReactComponent(wNode.name, (node) => { return <CombatRect type={wNode.type} title={wNode.title} row={wNode.row} node={node} /> })
         break;
+      case rectType.npc:
+        Graph.registerReactComponent(wNode.name, (node) => { return <UnitRect type={wNode.type} title={wNode.title} row={wNode.row} node={node} /> })
+        break;
       default:
         Graph.registerReactComponent(wNode.name, (node) => { return <UnitRect type={wNode.type} title={wNode.title} row={wNode.row} node={node} /> })
         break;
@@ -89,5 +93,6 @@ export enum NodeGroups {
 }
 
 export enum WorldNodeGroups {
-  "pc" = "pc"
+  "pc" = "pc",
+  "npc" = "npc"
 }

@@ -21,11 +21,12 @@ export interface IArea {
 }
 
 export interface IWorld {
-    name: string;
-    PcNumbers: number[]; //Pc的QQID
-    map?: object;
-    chatAreas: IArea[];
-    Areas: IArea[];
+    name: string,
+    PcNumbers: number[], //Pc的QQID
+    map?: object,
+    chatAreas: IArea[],
+    Areas: IArea[],
+    NpcNumbers: number[]
 }
 
 export interface statusModal {
@@ -168,8 +169,8 @@ export const onlyReadBasicConfig = () => {
         vitMaxHP: 3,
         lvMaxHP: 5,
         strMaxHP: 1,
-        initStatusPoint: 0,
-        initExchangePoint: 0,
+        initStatusPoint: 5,
+        initExchangePoint: 6,
         expGainPerLv: 3,
         expGainPerLvPvP: 0.15,
         basicSpeed: 3,

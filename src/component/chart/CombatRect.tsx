@@ -88,7 +88,7 @@ export const CombatRect = ({ type, title, row, node }: IChartRect) => {
       break;
   }
   return (
-    <Popover content={type == rectType.pc ? pcContent : void (0)} title={'虚拟讨论组' + (nowChatArea?.combat ? '(战斗轮中)' : '')} trigger="contextMenu" placement="right" >
+    <Popover content={type == rectType.pc ? pcContent : void (0)} title={'虚拟讨论组' + (nowChatArea?.combat ? '(战斗轮中)' : '')} trigger="contextMenu" placement="right" zIndex={1000}>
       <div className='rectContainer' style={{ width: '100%', height: '100%', background: nowChatArea?.combat ? '#ffbbbb' : '#fffbe6' || '#fffbe6' }}>
         <div className={`rectTop ${node.getProp(type)}`}>
         </div>

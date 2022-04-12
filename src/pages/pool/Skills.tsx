@@ -187,7 +187,7 @@ const Skills = () => {
             args: r.args,
             graph: r.graph,
             createdAt: r.createdAt,
-            eventBuffs: [],
+            eventBuffs: r.eventBuffs,
             type: r.type,
             desc: r.desc
           }

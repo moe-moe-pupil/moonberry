@@ -62,11 +62,11 @@ const PcModal = ({ Id: qqNumber, visible, bounds, size }: statusModal) => {
     : <Button onClick={handleClick}>目标未兑换，点击催他兑换</Button>
 
   const pcSkill: JSX.Element = nowPc ?
-    <PcSkill qqNumber={qqNumber} inited={true} />
+    <PcSkill Pc={nowPc} inited={true} />
     : <Button onClick={handleClick}>目标未兑换，点击催他兑换</Button>
 
   const pcExchange: JSX.Element = nowPc ?
-    <PcSkill qqNumber={qqNumber} inited={false} />
+    <PcSkill Pc={nowPc} inited={false} />
     : <Button onClick={handleClick}>目标未兑换，点击催他兑换</Button>
 
   const handleOk = (e: any) => {
@@ -113,10 +113,10 @@ const PcModal = ({ Id: qqNumber, visible, bounds, size }: statusModal) => {
         getContainer={false}
         bodyStyle={{ height: _size.height - 108 }}
         footer={[
-          <>{`玩家剩余属性点:${nowPc?nowPc.statusPoint:0}`}
-          <Button key="back" type="primary" onClick={handleOk}>
-            确认
-          </Button>,
+          <>{`玩家剩余属性点:${nowPc ? nowPc.statusPoint : 0}`}
+            <Button key="back" type="primary" onClick={handleOk}>
+              确认
+            </Button>,
           </>
         ]}
         title={

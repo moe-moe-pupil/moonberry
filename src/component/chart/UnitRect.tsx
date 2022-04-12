@@ -46,11 +46,15 @@ export const UnitRect = ({ type, title, row, node }: IChartRect) => {
   var outLined = <CaretRightOutlined />
   const getPc = node.getProp('pc')
   const QQNumber = node.getProp('QQNumber')
-  const nowPc = getPc(QQNumber) as Pc
+
   //const root: Root = node.getProp('root')
   const { RootStore }: Record<string, Root> = useStores();
-  //console.log('root:', RootStore)
-  //const nowPc = RootStore.getPcByQQNumber(QQNumber)! //似乎因为一些挂载机制的问题，没法这么写
+  const nowPc = RootStore.getPcByQQNumber(QQNumber) //getPc(QQNumber)
+  console.log(QQNumber, nowPc)
+  if (!nowPc) {
+    console.log(QQNumber, nowPc, '生成失败')
+    return (<></>)
+  }
   const pcMainMenu = (
     <div>
       <Button type="link" onClick={() => RootStore.pcNextTurn(QQNumber)}>
@@ -79,7 +83,7 @@ export const UnitRect = ({ type, title, row, node }: IChartRect) => {
     return nowPc.skillChain.map((skill) => {
       return (
         <>
-          <SkillTriggerModalBtn casterID={nowPc.Id} skill={skill}/><br />
+          <SkillTriggerModalBtn casterID={nowPc.Id} skill={skill} /><br />
         </>
       )
     })
@@ -104,15 +108,21 @@ export const UnitRect = ({ type, title, row, node }: IChartRect) => {
     case rectType.pc:
       outLined = <UserOutlined />
       break;
+    default:
+      outLined = <UserOutlined />
+      break;
   }
   return (
-    <Popover content={type == rectType.pc ? pcContent : void (0)} title={nowPc.nickname} trigger="contextMenu" placement="right" zIndex={1000}>
+    <Popover content={type == rectType.pc || type == rectType.npc ? pcContent : void (0)} title={nowPc.nickname} trigger="contextMenu" placement="right" zIndex={1000}>
       <div className='rectContainer'>
         <div className={`rectTop ${node.getProp(type)}`}>
         </div>
         <div className='rectTopContent'>
           {outLined}
           {title + ` 第${nowPc.turn}回合`}
+          <p style={{marginTop:15, marginLeft:'50%'}}>
+            {`(${nowPc.nickname})`}
+          </p>
         </div>
         {row.map((content) => {
           const inPortsStrs = content.inPorts.split(":")

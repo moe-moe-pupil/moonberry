@@ -51,6 +51,7 @@ export function preHandle(RootStore: Root, e: ReconnectingWebSocket.MessageEvent
       const lastWords = last.lastWords;
       const lastContent = last.lastContent;
       const lastType = last.lastType;
+      const nowPc = RootStore.getPcByQQNumber(qqNumber)
       if (lastWords.slice(0, 1) == '.' || lastWords.slice(0, 1) == '。') {
         switch (lastWords.slice(1)) {
           case "兑换":
@@ -63,15 +64,20 @@ export function preHandle(RootStore: Root, e: ReconnectingWebSocket.MessageEvent
             //RootStore.Ue4SendMsg(`{"action":{"uppic":"-1,${window.name},${qqNumber}"}}`)
             break;
           case "抽取天赋":
-            if (RootStore.dataObj[qqNumber + ''] == '周三' || RootStore.dataObj[qqNumber + ''] == '周六') {
+            if (nowPc && nowPc.inited) {
               RootStore.drawTalents(qqNumber)
             } else {
-              RootStore.ezSendText(qqNumber, [`你还未选择周三团还是周六团, 请先选择再抽取天赋。用指令 。周三 或 。周六`])
+              RootStore.ezSendText(qqNumber, [`请先完成兑换再抽取天赋`])
             }
 
             break;
           case "抽取辅助天赋":
-            RootStore.drawTalents(qqNumber, 3, ISkillsPoolType.支援天赋)
+            if (nowPc && nowPc.inited) {
+              RootStore.drawTalents(qqNumber, 3, ISkillsPoolType.支援天赋)
+            } else {
+              RootStore.ezSendText(qqNumber, [`请先完成兑换再抽取天赋`])
+            }
+
             break;
           case "状态":
             RootStore.formatMsgPcStatus(qqNumber)
@@ -117,7 +123,6 @@ export function preHandle(RootStore: Root, e: ReconnectingWebSocket.MessageEvent
         nowSkill[i] = nowSkill[i].replace(/\n/g, "");
         nowSkill[i] = nowSkill[i].replace(/\r\n/g, "");
       }
-      const nowPc = RootStore.getPcByQQNumber(qqNumber) as Pc;
       if (pcInSkillExchange(RootStore, qqNumber) != -1 || (nowPc && nowPc.inited)) {
         if (nowSkill.length == 4) {
           if (RootStore.findSkillByName(qqNumber, nowSkill[0]).count == 0) {
@@ -128,7 +133,9 @@ export function preHandle(RootStore: Root, e: ReconnectingWebSocket.MessageEvent
               : RootStore.ezSendText(qqNumber, ["打击类型错误, " + nowSkill[1] + " 类型不存在,已更改为默认值单目标，如果想做更改请联系st"]);
             SkillTypeEnum[nowSkill[2]] ? newSkill.type = SkillTypeEnum[nowSkill[2]]
               : RootStore.ezSendText(qqNumber, ["类型错误, " + nowSkill[2] + " 类型不存在,已更改为默认值法术，如果想做更改请联系st"]);
-            nowPc.skillChain.push(newSkill);
+            if (nowPc) {
+              nowPc.skillChain.push(newSkill);
+            }
             RootStore.ezSendText(qqNumber, ["兑换数据已录入，请等待审核"]);
           } else {
             RootStore.ezSendText(qqNumber, ["已有重名兑换，请确保兑换名称唯一"]);
@@ -144,17 +151,20 @@ export function preHandle(RootStore: Root, e: ReconnectingWebSocket.MessageEvent
       }
 
       if (pcInPicExchange(RootStore, qqNumber) != -1 && lastType == messageType.Image) {
-        RootStore.setPcUrl(nowPc, lastContent)
-        RootStore.nextExchange(qqNumber)
+        if (nowPc) {
+          RootStore.setPcUrl(nowPc, lastContent)
+          RootStore.nextExchange(qqNumber)
+        }
       }
 
       if (pcInNickNameExchange(RootStore, qqNumber) != -1 && lastType == messageType.Plain) {
-        if (RootStore.setPcNickname(nowPc, lastWords)) {
-          RootStore.nextExchange(qqNumber)
-        } else {
-          RootStore.ezSendText(qqNumber, [`很抱歉，「${lastWords}」昵称已经被人使用了，请更换一个昵称`])
+        if (nowPc) {
+          if (RootStore.setPcNickname(nowPc, lastWords)) {
+            RootStore.nextExchange(qqNumber)
+          } else {
+            RootStore.ezSendText(qqNumber, [`很抱歉，「${lastWords}」昵称已经被人使用了，请更换一个昵称`])
+          }
         }
-
       }
 
       if (lastWords == ".." || lastWords == ".。" || lastWords == "。." || lastWords == "。。") {

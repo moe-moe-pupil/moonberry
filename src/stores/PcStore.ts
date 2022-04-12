@@ -25,7 +25,9 @@ interface PcProps {
     exp: number,
     speed: number,
     expBouns: number,//额外经验值系数
-    isSupport: boolean,//是辅助嘛
+    isSupport: boolean,//是辅助?
+    isElite: boolean,//是精英目标?(玩家被认为是精英目标)
+    alive: boolean,//是否存活
     tdpt: number,//一回合承受伤害
     thpt: number,//一回合承受治疗
     status: Status,
@@ -34,6 +36,8 @@ interface PcProps {
     statusPoint: number,
     DMGModify: number,
     healModify: number,
+    tDMGModify: number,
+    tHealModify: number,
     exchange: exchangeType,
     exchangePoint: number,
 }
@@ -95,10 +99,13 @@ export default class Pc implements PcProps {
     }
     expBouns: number = 1;
     isSupport: boolean = false;
+    isElite: boolean = false;
     speed: number = 3;
     DMGModify: number = 1;
     healModify: number = 1;
-
+    alive: boolean = true;
+    tDMGModify: number = 1;
+    tHealModify: number = 1;
     constructor() {
         makeAutoObservable(this);
         // this.name = pc.name;
@@ -109,6 +116,7 @@ export default class Pc implements PcProps {
         // this.maxMP = pc.maxMP
 
     }
+
 }
 
 

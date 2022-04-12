@@ -51,6 +51,7 @@ export enum ModalType {
   skill = 'currentSkillEditModal',
   world = 'currentWorld',
 }
+
 export interface nowChecked {
   equal: boolean;
   negative: boolean;
@@ -127,6 +128,14 @@ export interface ISkillsPool {
   desc: string,
 }
 
+export interface IUnitPool {
+  id: string,
+  Pc: Pc,
+  group: number,//>10000时对应QQ号，其他情况为 团的数组下标
+  tags: string,
+  createdAt: string,
+  desc: string,
+}
 
 export interface IRandomPool {
   id: string,
@@ -167,6 +176,7 @@ export default class Root implements RootProps {
   currentGroup: number = 0;
   config: IRootConfig = { canChatListAdd: true, Ue4Enable: false, orderByTurn: false, negative: true };
   skillsPool: ISkillsPool[] = [];
+  unitPool: IUnitPool[] = [];
   randomPool: IRandomPool[] = [];
   dataObj = {}
   //不保存内容
@@ -226,7 +236,7 @@ export default class Root implements RootProps {
     makeAutoObservable(this);
     makePersistable(this, {
       name: "RootStore",
-      properties: ["groups", "currentGroup", "config", "skillsPool", "dataObj", "randomPool"],
+      properties: ["groups", "currentGroup", "config", "skillsPool", "dataObj", "randomPool", "unitPool"],
       storage: window.localStorage
     });
     InitNodes();
@@ -327,6 +337,7 @@ export default class Root implements RootProps {
         newSkills.push(newSkill)
       })
       newPc.skillChain = newSkills
+      newPc.isElite = true
       newAllPcList.push(newPc)
       //console.log(newPc, pc)
     })
@@ -376,6 +387,7 @@ export default class Root implements RootProps {
    * 更新所有内容
    */
   updateAllObj() {
+    console.log('已经更新所有对象')
     this.updateAllPcObj()
     this.updateAllRootConfigObj()
     this.updateAllGroupObj()
@@ -486,6 +498,15 @@ export default class Root implements RootProps {
     }
   }
 
+  setUnitPoolById(pool: IUnitPool) {
+    const idx = this.findUnitById(pool.id)
+    if (idx != -1) {
+      const newUnitPool = this.unitPool.slice()
+      newUnitPool[idx] = pool
+      this.unitPool = newUnitPool
+    }
+  }
+
   /**
    * 设置技能池
    * @param pool 技能池
@@ -556,6 +577,20 @@ export default class Root implements RootProps {
   }
 
   /**
+   * 单位池删除
+   * @param Id 单位池Id
+   */
+  unitPoolDelById(Id: string) {
+    const idx = this.findUnitById(Id)
+    if (idx != -1) {
+      const newUnitPool = this.unitPool.slice()
+      newUnitPool.splice(idx, 1)
+      this.unitPool = newUnitPool
+    }
+  }
+
+
+  /**
    * 新增技能池
    * @param name 技能池名字
    * @param group 对应团
@@ -603,6 +638,30 @@ export default class Root implements RootProps {
     newRandomPool.push(newRandom)
     this.randomPool = newRandomPool
   }
+
+  unitPoolAdd(group: number, tags: string, desc: string, nowPc: Pc, uid?: string) {
+    const newUnit: IUnitPool = {
+      id: uid || uuid(),
+      Pc: nowPc,
+      group: group,
+      tags: tags,
+      createdAt: formatTime(new Date()),
+      desc: desc
+    }
+    const newUnitPool = this.unitPool.slice()
+    if (uid) {
+      const idx = this.findUnitById(uid)
+      if (idx != -1) {
+        newUnitPool[idx] = newUnit
+      } else {
+        newUnitPool.push(newUnit)
+      }
+    } else {
+      newUnitPool.push(newUnit)
+    }
+    this.unitPool = newUnitPool
+  }
+
   /**
    * 复原Pc状态到无损
    * @param nowPc 
@@ -791,51 +850,69 @@ export default class Root implements RootProps {
   updatePcStatus(nowPc: Pc, resume = false, nextTurn = false, log = '') {
     //console.log(nowPc.nickname + "刷新了", nextTurn)
     console.log(log)
-    const nowGroup = this.groups[this.currentGroup];
-    nowPc.maxHP = nowPc.lv * nowGroup.basicConfig.lvMaxHP + (nowPc.status.str) * nowGroup.basicConfig.strMaxHP + (nowPc.status.vit) * nowGroup.basicConfig.vitMaxHP
-    nowPc.maxMP = (nowPc.status.int) * nowGroup.basicConfig.intMaxMP + (+ nowPc.status.wis) * nowGroup.basicConfig.wisMaxMP
-    nowPc.hpReg = (nowPc.status.vit) * nowGroup.basicConfig.vitHPReg
-    nowPc.mpReg = (nowPc.status.wis) * nowGroup.basicConfig.wisMPReg
-    nowPc.DMGModify = 1
-    nowPc.healModify = 1
-    setValues(nowPc.extraStatus, 0)
-    const beforePcBuff = JSON.stringify(nowPc.buff)
-    this.updatePcBuff(nowPc, nextTurn)
-    nowPc.maxHP += nowPc.extraStatus.str * nowGroup.basicConfig.strMaxHP + nowPc.extraStatus.vit * nowGroup.basicConfig.vitMaxHP
-    nowPc.maxMP += (nowPc.extraStatus.int) * nowGroup.basicConfig.intMaxMP + (nowPc.extraStatus.wis) * nowGroup.basicConfig.wisMaxMP
-    nowPc.hpReg += (nowPc.extraStatus.vit) * nowGroup.basicConfig.vitHPReg
-    nowPc.mpReg += (nowPc.extraStatus.wis) * nowGroup.basicConfig.wisMPReg
-    for (var i in nowPc.totalStatus) {
-      nowPc.totalStatus[i] = nowPc.status[i] + nowPc.extraStatus[i]
-    }
-    nowPc.speed = nowPc.totalStatus.str * nowGroup.basicConfig.strSpeed + nowPc.totalStatus.dex * nowGroup.basicConfig.dexSpeed + nowPc.totalStatus.agi * nowGroup.basicConfig.agiSpeed + nowGroup.basicConfig.basicSpeed
-    if (nextTurn) {
-      const nowHPStatus = this.formatHPStatus(nowPc.hp, nowPc.maxHP)
-      const nowArea = this.getPcChatAreaById(nowPc.Id)
-      if (nowHPStatus != HPStatus.重伤 && nowHPStatus != HPStatus.濒死 && (!nowArea || (nowArea && !nowArea.combat))) {
-        nowPc.hp += nowPc.hpReg
+    if (nowPc.alive || resume) {
+      const nowGroup = this.groups[this.currentGroup];
+      nowPc.maxHP = nowPc.lv * nowGroup.basicConfig.lvMaxHP + (nowPc.status.str) * nowGroup.basicConfig.strMaxHP + (nowPc.status.vit) * nowGroup.basicConfig.vitMaxHP
+      nowPc.maxMP = (nowPc.status.int) * nowGroup.basicConfig.intMaxMP + (+ nowPc.status.wis) * nowGroup.basicConfig.wisMaxMP
+      nowPc.hpReg = (nowPc.status.vit) * nowGroup.basicConfig.vitHPReg
+      nowPc.mpReg = (nowPc.status.wis) * nowGroup.basicConfig.wisMPReg
+      nowPc.DMGModify = 1
+      nowPc.healModify = 1
+      setValues(nowPc.extraStatus, 0)
+      const beforePcBuff = JSON.stringify(nowPc.buff)
+      this.updatePcBuff(nowPc, nextTurn)
+      nowPc.maxHP += nowPc.extraStatus.str * nowGroup.basicConfig.strMaxHP + nowPc.extraStatus.vit * nowGroup.basicConfig.vitMaxHP
+      nowPc.maxMP += (nowPc.extraStatus.int) * nowGroup.basicConfig.intMaxMP + (nowPc.extraStatus.wis) * nowGroup.basicConfig.wisMaxMP
+      nowPc.hpReg += (nowPc.extraStatus.vit) * nowGroup.basicConfig.vitHPReg
+      nowPc.mpReg += (nowPc.extraStatus.wis) * nowGroup.basicConfig.wisMPReg
+      for (var i in nowPc.totalStatus) {
+        nowPc.totalStatus[i] = nowPc.status[i] + nowPc.extraStatus[i]
       }
-      nowPc.turn += 1
-      nowPc.mp += nowPc.mpReg
-      nowPc.skillChain.map((skill) => {
-        if (skill.cooldownLeft > 0) {
-          skill.cooldownLeft -= 1
+      nowPc.speed = nowPc.totalStatus.str * nowGroup.basicConfig.strSpeed + nowPc.totalStatus.dex * nowGroup.basicConfig.dexSpeed + nowPc.totalStatus.agi * nowGroup.basicConfig.agiSpeed + nowGroup.basicConfig.basicSpeed
+      if (nextTurn) {
+        const nowHPStatus = this.formatHPStatus(nowPc.hp, nowPc.maxHP)
+        const nowArea = this.getPcChatAreaById(nowPc.Id)
+        if (nowHPStatus != HPStatus.重伤 && nowHPStatus != HPStatus.濒死 && (!nowArea || (nowArea && !nowArea.combat))) {
+          nowPc.hp += nowPc.hpReg
         }
-      })
+        nowPc.turn += 1
+        nowPc.mp += nowPc.mpReg
+        nowPc.skillChain.map((skill) => {
+          if (skill.cooldownLeft > 0) {
+            skill.cooldownLeft -= 1
+          }
+        })
+      }
+      if (nowPc.hp > nowPc.maxHP)
+        nowPc.hp = nowPc.maxHP
+      if (nowPc.mp > nowPc.maxMP)
+        nowPc.mp = nowPc.maxMP
+      if (resume) {
+        this.resumePcStatus(nowPc)
+        this.setPcIsAlive(nowPc, true)
+      }
+      this.pcFresh += 1
+      const newHP = formatFloat(nowPc.hp, 2)
+      nowPc.hp = typeof newHP != 'boolean' ? newHP : -1
+      if (beforePcBuff != JSON.stringify(nowPc.buff)) {
+        this.updatePcStatus(nowPc, false, false, 'BUFF改变')
+      } else {
+        if (nowPc.hp <= 0) {
+          this.setPcIsAlive(nowPc, false)
+        }
+      }
     }
-    if (nowPc.hp > nowPc.maxHP)
-      nowPc.hp = nowPc.maxHP
-    if (nowPc.mp > nowPc.maxMP)
-      nowPc.mp = nowPc.maxMP
-    if (resume) {
-      this.resumePcStatus(nowPc)
-    }
-    this.pcFresh += 1
-    if (beforePcBuff != JSON.stringify(nowPc.buff)) {
-      this.updatePcStatus(nowPc, false, false, 'BUFF改变')
-    }
-    const newHP = formatFloat(nowPc.hp, 2)
-    nowPc.hp = typeof newHP != 'boolean'? newHP : -1
+
+
+  }
+
+  /**
+   * 设置Pc对象是否存活
+   * @param nowPc Pc对象
+   * @param alive 存活?
+   */
+  setPcIsAlive(nowPc: Pc, alive: boolean) {
+    nowPc.alive = alive
   }
 
   /**
@@ -1099,7 +1176,7 @@ export default class Root implements RootProps {
   takeDMG(nowPc: Pc, dmg: DMG) {
     const newDMG = this.preDefendDMGBuff(nowPc, dmg)
     if (dmg.value > 0) {
-      nowPc.hp -= newDMG.value
+      nowPc.hp -= newDMG.value * nowPc.tDMGModify
     }
   }
 
@@ -1207,7 +1284,7 @@ export default class Root implements RootProps {
    */
   takeHeal(nowPc: Pc, heal: heal) {
     const newHeal = this.preTakeHealBuff(nowPc, heal)
-    nowPc.hp += newHeal.value
+    nowPc.hp += newHeal.value * nowPc.tHealModify
     console.log(nowPc.turn)
     if (nowPc.hp > nowPc.maxHP) {
       this.overFlowHeal(nowPc, heal);
@@ -1404,9 +1481,9 @@ export default class Root implements RootProps {
   setPcValues(nowPc: Pc, tarStatus: string, value: any) {
     if (getEnumKeysOrValue(statusEnum).indexOf(tarStatus) != -1) {
       //console.log(getEnumKeysOrValue(statusEnum))
-      setValue(nowPc, tarStatus, isNaN(value) ? value : parseFloat(value), '', 'status', true)
+      setValue(nowPc, tarStatus, isNaN(value) ? value : typeof value != 'boolean' ? parseFloat(value) : value, '', 'status', true)
     } else {
-      setValue(nowPc, tarStatus, isNaN(value) ? value : parseFloat(value), '')
+      setValue(nowPc, tarStatus, isNaN(value) ? value : typeof value != 'boolean' ? parseFloat(value) : value, '')
     }
     this.updatePcStatus(nowPc);
   }
@@ -1783,6 +1860,7 @@ export default class Root implements RootProps {
             ])
             nowPc.inited = true;
             nowPc.exchange = exchangeType.normal;
+            nowPc.isElite = true;
             this.updatePcStatus(nowPc, true)
             this.ezCreatePc(nowPc)
         }
@@ -1801,14 +1879,27 @@ export default class Root implements RootProps {
   }
 
   /**
+   * 生成新NPC的Id
+   * @returns {number} Id
+   */
+  geneNPCId() {
+    var nV = -1
+    const pcIds = this.unitPool.map((pool) => (pool.Pc.Id))
+    while (pcIds.includes(nV)) {
+      nV -= 1
+    }
+    return nV
+  }
+
+  /**
    * 获取pc的技能对象数组
    * @param Id 目标pc的Id值,通常是qq号
    * @param inited 是否是兑换完成的技能
    * @returns {Skill[]} 技能对象数组
    */
-  getPcSkills(Id: number, inited: boolean): Skill[] {
+  getPcSkills(Id: number, inited: boolean, Pc?: Pc): Skill[] {
     const returnSkill: Skill[] = [];
-    const nowPc = this.getPcByQQNumber(Id) as Pc;
+    const nowPc = Pc ? Pc : this.getPcByQQNumber(Id) as Pc;
     for (var i in nowPc.skillChain) {
       if (nowPc.skillChain[i].stInited == inited) {
         returnSkill.push(nowPc.skillChain[i])
@@ -1831,15 +1922,19 @@ export default class Root implements RootProps {
 
   /**
    * 设置pc技能对象属性
-   * @param Id 目标Pc的Id值,通常是qq号
    * @param idx 目标技能的数组下标
    * @param changeValues 更新值
    * @param inited 是否是一个兑换完成的技能
+   * @param Pc 目标Pc对象
+   * @param Id 目标Pc的Id值,通常是qq号
    */
-  setPcSkill(Id: number, idx: number, changeValues: any, inited: boolean = false): void {
-    const nowPc = this.getPcByQQNumber(Id) as Pc;
+  setPcSkill(idx: number, changeValues: any, inited: boolean = false, Pc?: Pc, Id?: number): void {
+    const nowPc = Pc ? Pc : Id ? this.getPcByQQNumber(Id) : undefined;
     var index = 0;
     const targetKey = Object.keys(changeValues)[0]
+    if (!nowPc) {
+      return
+    }
     for (var i in nowPc.skillChain) {
       if (nowPc.skillChain[i].stInited == inited) {
         if (index == idx) {
@@ -1881,8 +1976,11 @@ export default class Root implements RootProps {
    * @param idx 目标技能的数组下标
    * @returns {void}
    */
-  setSkillInited(Id: number, idx: number): void {
-    const nowPc = this.getPcByQQNumber(Id) as Pc;
+  setSkillInited(idx: number, Id?: number, Pc?: Pc): void {
+    const nowPc = Pc ? Pc : Id ? this.getPcByQQNumber(Id) : undefined;
+    if (!nowPc) {
+      return
+    }
     var index = 0;
     for (var i in nowPc.skillChain) {
       if (!nowPc.skillChain[i].stInited) {
@@ -1890,7 +1988,7 @@ export default class Root implements RootProps {
           if (nowPc.exchangePoint >= nowPc.skillChain[i].exchangePoint) {
             nowPc.skillChain[i].stInited = true;
             nowPc.exchangePoint -= nowPc.skillChain[i].exchangePoint
-            this.ezSendText(Id, [
+            this.ezSendText(Id || nowPc.Id, [
               `名称：${nowPc.skillChain[i].name}\n`,
               `打击类型：${nowPc.skillChain[i].class}\n`,
               `类型：${nowPc.skillChain[i].type}\n`,
@@ -1944,12 +2042,18 @@ export default class Root implements RootProps {
 
   /**
    * 通过名称删除技能
-   * @param Id 目标Pc的Id值,通常是qq号
    * @param name 技能名称
+   * @param returnPoint 返回兑换点？
+   * @param Id 目标技能Id
+   * @param Pc 目标PcId
+   * @returns 
    */
-  delSkillByName(Id: number, name: string, returnPoint: boolean = true) {
-    const nowPc = this.getPcByQQNumber(Id) as Pc;
-    var idx = this.findSkillByName(Id, name).idx
+  delSkillByName(name: string, returnPoint: boolean = true, Id?: number, Pc?: Pc) {
+    const nowPc = Pc ? Pc : Id ? this.getPcByQQNumber(Id) : undefined;
+    if (!nowPc) {
+      return
+    }
+    var idx = this.findSkillByName(Id || nowPc.Id, name).idx
     if (returnPoint) {
       nowPc.exchangePoint += nowPc.skillChain[idx].exchangePoint
     }
@@ -2031,7 +2135,7 @@ export default class Root implements RootProps {
       const nowArea = this.groups[this.currentGroup].currentTeams[areaIdxs[0].teamIdx]
       //console.log(nowArea.Id)
       newMsgChain.map((msg, idx) => {
-        if (msg.type == messageType.Plain && teamChatReg.test(msg.text as string) && sourcePc && sourcePc.hp > 0) {
+        if (msg.type == messageType.Plain && teamChatReg.test(msg.text as string) && sourcePc && sourcePc.alive) {
           const pureObj = Object.assign({}, msg)
           areaChatMsg.push(pureObj);
           pureObj.text = pureObj.text!.substring(1, pureObj.text!.length - 1)
@@ -2058,10 +2162,10 @@ export default class Root implements RootProps {
       const sourcePc = this.getPcByQQNumber(chat.sender!.id) as Pc
       const nowArea = this.currentWorld[chatAreaIdxs[0].worldIdx].world.chatAreas[chatAreaIdxs[0].chatAreaIdx]
       newMsgChain.map((msg, idx) => {
-        if (msg.type == messageType.Plain && worldChatReg.test(msg.text as string) && sourcePc && sourcePc.hp > 0) {
+        if (msg.type == messageType.Plain && worldChatReg.test(msg.text as string) && sourcePc && sourcePc.alive) {
           areaChatMsg.push(msg);
           for (var j = 0; j < nowArea.member.length; j++) {
-            if (nowArea.member[j] != chat.sender!.id) {
+            if (nowArea.member[j] != chat.sender!.id && nowArea.member[j] > 0) {
               this.ezSendText(nowArea.member[j], [
                 `「${sourcePc.nickname}」:"${msg.text?.slice(1, msg.text.length - 1)}"`
               ], true, false)
@@ -2196,6 +2300,19 @@ export default class Root implements RootProps {
     return undefined;
   }
 
+  /**
+   * 通过Id找到单位池目标
+   * @param Id 目标单位池的Id值
+   * @returns {number} 找到的单位池数组下标
+   */
+  findUnitById(Id: string): number {
+    for (var i = 0; i < this.unitPool.length; i++) {
+      if (this.unitPool[i].id == Id) {
+        return i
+      }
+    }
+    return -1
+  }
 
   /**
    * 通过Id找到技能池效果
@@ -2237,6 +2354,20 @@ export default class Root implements RootProps {
       }
     }
     return -1;
+  }
+
+  /**
+   * 通过Id获取单位池目标
+   * @param Id 
+   * @returns 
+   */
+  getUnitById(Id: string): IUnitPool | undefined {
+    const idx = this.findUnitById(Id)
+    if (idx != -1) {
+      return this.unitPool[idx]
+    } else {
+      return undefined
+    }
   }
 
   /**
@@ -2291,7 +2422,23 @@ export default class Root implements RootProps {
     if (idx != -1) {
       return this.groups[this.currentGroup].pc[idx];
     }
+    const NpcIdx = this.findNpcByQQNumber(Id, index)
+    if (NpcIdx != -1) {
+      return this.unitPool[NpcIdx].Pc
+    }
     return undefined;
+  }
+
+
+  geneInsertNPCId(Id: number) {
+    var nV = 0.999
+    var count = 1
+    const pcIds = this.groups[this.currentGroup].pc.map((pc) => pc.Id)
+    while (pcIds.includes(Id - nV)) {
+      nV -= 0.001
+      count += 1
+    }
+    return { IdV: Id - nV, c: count }
   }
 
   /**
@@ -2317,6 +2464,32 @@ export default class Root implements RootProps {
     const idxs = []
     for (var i = 0; i < this.groups[this.currentGroup].pc.length; i++) {
       if (this.groups[this.currentGroup].pc[i].Id == Id) {
+        idxs.push(i)
+      }
+    }
+    if (idx > 0) {
+      if (idx < idxs.length) {
+        return idxs[idx]
+      }
+    } else {
+      if (idxs.length + idx > -1) {
+        return idxs[idxs.length + idx]
+      }
+    }
+    //console.log("警告：未找到QQ号为" + Id + "的PC");
+    return -1;
+  }
+
+  /**
+   * 通过QQ号寻找Npc数组下标
+   * @param Id 目标Npc的Id值,通常是qq号
+   * @param idx 目标Npc轮次 
+   * @returns {number} 目标数组下标
+   */
+  findNpcByQQNumber(Id: number, idx: number = -1): number {
+    const idxs = []
+    for (var i = 0; i < this.unitPool.length; i++) {
+      if (this.unitPool[i].Pc.Id == Id) {
         idxs.push(i)
       }
     }
@@ -2659,6 +2832,31 @@ export default class Root implements RootProps {
   }
 
   /**
+   * 获取所有Pc对象数组
+   */
+  get AllPcandNpcList() {
+    const returnPcs: Pc[] = [];
+    const tmp = {}
+    //console.log(this.groups)
+    if (this.groups.length != 0) {
+      this.groups[this.currentGroup].pc.map((pc) => {
+        tmp[pc.Id] = pc
+      })
+    }
+    Object.keys(tmp).map((key) => {
+      returnPcs.push(tmp[key])
+    })
+    return returnPcs;
+  }
+
+  /**
+   * 删除当前团所有的NPC角色
+   */
+  deleteAllNpc() {
+    this.groups[this.currentGroup].pc = this.groups[this.currentGroup].pc.filter((pc) => { return pc.Id > 0 })
+  }
+
+  /**
    * 获取所有无频道Pc对象数组
    */
   get AllNoTeamPcList() {
@@ -2889,6 +3087,16 @@ export default class Root implements RootProps {
   }
 
   /**
+   * 删除目标Id的Pc
+   * @param Id 目标PcId
+   */
+  delPcById(Id: number) {
+    const nowPcs = this.groups[this.currentGroup].pc
+    const newPcs = nowPcs.slice().filter((Pc) => { return Pc.Id != Id })
+    this.groups[this.currentGroup].pc = newPcs
+  }
+
+  /**
    * 删除世界
    * @param Id 可选, 世界Id
    * @param idx 可选, 第几个世界
@@ -2898,11 +3106,17 @@ export default class Root implements RootProps {
     if (Id) {
       const index = this.findWorldById(Id)
       if (index != -1) {
+        this.currentWorld[index].world.NpcNumbers.map((npc) => {
+          this.delPcById(npc)
+        })
         this.currentWorld.splice(index, 1)
         return
       }
     }
     if (idx) {
+      this.currentWorld[idx].world.NpcNumbers.map((npc) => {
+        this.delPcById(npc)
+      })
       this.currentWorld.splice(idx, 1)
     }
   }
@@ -3039,6 +3253,18 @@ export default class Root implements RootProps {
   }
 
   /**
+   * 设置NpcId列表
+   * @param Id 世界Id
+   * @param newNpcNumbers 新NpcId数组
+   */
+  setNpcNumber(Id: string, newNpcNumbers: number[]) {
+    const nowWorld = this.getWorldById(Id)
+    if (nowWorld) {
+      nowWorld.world.NpcNumbers = newNpcNumbers
+    }
+  }
+
+  /**
    * 设置虚拟讨论组是否进入战斗轮?
    * @param Id 虚拟讨论组Id
    * @param combat 是否进入战斗轮?
@@ -3072,6 +3298,7 @@ export default class Root implements RootProps {
         PcNumbers: pcs,
         chatAreas: [],
         Areas: [],
+        NpcNumbers: [],
       },
       Id: uuid(),
       visible: true,
@@ -3597,7 +3824,7 @@ export default class Root implements RootProps {
         nowNegative.reply = false
       }
       const nowPc = this.getPcByQQNumber(Id)
-      if (nowPc) {
+      if (nowPc && nowPc.inited && this.config.negative) {
         const nowChecked = this.checkedIfHalfPcOverTurn()
         this.startNegativeTimeOut(nowChecked, [nowPc], 1000 * 60 * 2)
       }

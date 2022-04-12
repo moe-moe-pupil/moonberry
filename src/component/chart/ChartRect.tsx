@@ -11,8 +11,8 @@ export enum rectType {
   function = 'function',
   var = 'var',
   pc = 'pc',
-  token = 'token'
-
+  token = 'token',
+  npc = 'npc'
 }
 
 export enum contentType {

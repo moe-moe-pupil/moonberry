@@ -14,6 +14,11 @@ export default [
             component: '@/pages/pool/Skills'
           },
           {
+            name:'单位池管理',
+            path:'/commander/pool/unit',
+            component: '@/pages/pool/Unit'
+          },
+          {
             name:'随机池管理',
             path:'/commander/pool/random',
             component: '@/pages/pool/Random'

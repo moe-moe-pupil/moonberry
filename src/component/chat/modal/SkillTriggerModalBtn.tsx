@@ -72,7 +72,7 @@ const SkillTriggerModalBtn: React.FC<{ casterID: number, skill: Skill }> = ({ ca
           allowClear
           maxTagCount='responsive'
         >
-          {tars.length < skill.target ? RootStore.AllPcList.map(item => (
+          {tars.length < skill.target ? RootStore.AllPcandNpcList.map(item => (
             <Select.Option key={item.Id} value={item.nickname}>
               {item.nickname}
             </Select.Option>

@@ -66,6 +66,7 @@ const ExtraCallback: React.FC<{ localPath: string }> = (props: { localPath: stri
           <Button icon={<UploadOutlined />}>导入</Button>
         </Upload>
         <ExportModalBtn/>
+        <Button danger onClick={(e) => { RootStore.deleteAllNpc() }} >删除当前团所有NPC</Button>
         <Button danger onClick={(e) => { RootStore.updateAllObj() }} >开发功能:更新</Button>
         <Button onClick={(e) => { RootStore.skillsPoolClear() }} >重置技能效果池</Button>
         <Button danger onClick={(e) => { RootStore.createAllPcInUE4() }} >创建所有pc</Button>

@@ -51,7 +51,9 @@ export const basicEnum = [
     "k",
     "cha",
     'DMGModify',
-    'healModify'
+    'healModify',
+    'tDMGModify',
+    'tHealModify'
 ]
 export enum EffectEnum {
     hp = "hp",
@@ -68,6 +70,8 @@ export enum EffectEnum {
     wis = "wis",
     healModify = 'healModify',
     DMGModify = 'DMGModify',
+    tHealModify = 'tHealModify',
+    tDMGModify = 'tDMGModify',
     k = "k",
     cha = "cha",
     伤害 = '伤害',

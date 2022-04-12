@@ -219,7 +219,8 @@ export const worldMapConfig: Partial<Options.Manual> = {
   embedding: {
     enabled: true,
     validate({ parent, child }) {
-      if ((parent.getProp('type') != '_group' && parent.getProp('type') != '_combat') || child.getProp('type') != rectType.pc) {
+      if ((parent.getProp('type') != '_group' && parent.getProp('type') != '_combat') ||
+       (child.getProp('type') != rectType.pc && child.getProp('type') != rectType.npc)) {
         console.log(parent.getProp('type'), child)
         return false
       }

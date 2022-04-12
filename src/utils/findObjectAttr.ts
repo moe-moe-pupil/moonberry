@@ -19,6 +19,7 @@ export function getValue(obj: any, tarKey: string, nowPar: string, tarParkey?: s
 
 
 export function setValue(obj: any, tarKey: string, value: any, nowPar: string, tarParkey?: string, exactly: boolean = false) {
+  console.log(value)
   if (obj) {
     Object.keys(obj).forEach(key => {
       if (typeof obj[key] == 'object' && obj[key]) {
@@ -26,7 +27,7 @@ export function setValue(obj: any, tarKey: string, value: any, nowPar: string, t
       } else {
         if (key == tarKey && (!tarParkey || (!exactly && nowPar.indexOf(tarParkey) != -1) || (exactly && nowPar == tarParkey))) {
           obj[key] = value;
-          console.log(obj[key])
+          console.log(obj[key], value)
         }
       }
     });
